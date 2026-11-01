@@ -1,0 +1,17 @@
+[package]
+name = "browser-render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+browser-core.workspace = true
+ab_glyph.workspace = true
+image.workspace = true
+log.workspace = true
+ahash.workspace = true
+smallvec.workspace = true
+unicode-segmentation.workspace = true
+parking_lot.workspace = true
+url.workspace = true

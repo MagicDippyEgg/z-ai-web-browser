@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Z Browser Demo</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 20px; background: #fafafa; color: #222; }
+  h1 { color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 6px; }
+  h2 { color: #444; margin-top: 24px; }
+  .container { display: flex; gap: 10px; margin: 10px 0; }
+  .container .item { flex: 1; background: white; border: 1px solid #ddd; padding: 10px; text-align: center; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .grid > div { background: #d0ffd0; padding: 8px; text-align: center; border: 1px solid #080; }
+  .box { background: white; border: 1px solid #888; padding: 10px; margin: 10px 0; }
+  .highlight { background: yellow; padding: 2px 4px; }
+  button { padding: 6px 12px; background: #0066cc; color: white; border: none; cursor: pointer; }
+  button:hover { background: #0044aa; }
+  #counter { font-size: 24px; font-weight: bold; color: #0066cc; }
+  #output { background: #f0f0f0; padding: 8px; font-family: monospace; min-height: 30px; }
+  a { color: #0066cc; }
+</style>
+</head>
+<body>
+<h1>Z Browser — From Scratch</h1>
+<p>This page is rendered by a browser built entirely from scratch in Rust. No Chromium, WebKit, Gecko, or Electron.</p>
+
+<h2>Flexbox</h2>
+<div class="container">
+  <div class="item">Item 1</div>
+  <div class="item">Item 2</div>
+  <div class="item">Item 3</div>
+</div>
+
+<h2>Grid</h2>
+<div class="grid">
+  <div>Cell 1</div><div>Cell 2</div><div>Cell 3</div>
+  <div>Cell 4</div><div>Cell 5</div><div>Cell 6</div>
+</div>
+
+<h2>Box model & colors</h2>
+<div class="box">A box with padding, border, and margin.</div>
+<p style="color: red;">Red text</p>
+<p style="color: rgb(0, 128, 0);">Green text</p>
+<p style="color: hsl(240, 100%, 50%);">Blue text</p>
+
+<h2>JavaScript interactivity</h2>
+<p>Counter: <span id="counter">0</span></p>
+<button id="inc-btn">Increment</button>
+<button id="reset-btn">Reset</button>
+<div id="output">Click a button to see JS in action.</div>
+
+<h2>Links</h2>
+<p><a href="basic.html">Basic HTML</a> | <a href="css.html">CSS</a> | <a href="js.html">JS</a> | <a href="forms.html">Forms</a> | <a href="flexbox.html">Flexbox</a></p>
+
+<script>
+  var count = 0;
+  var counter = document.getElementById('counter');
+  var output = document.getElementById('output');
+  
+  document.getElementById('inc-btn').addEventListener('click', function() {
+    count++;
+    counter.textContent = count;
+    output.textContent = 'Incremented to ' + count + ' at ' + new Date().getTime();
+  });
+  
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    count = 0;
+    counter.textContent = count;
+    output.textContent = 'Reset to 0';
+  });
+  
+  console.log('Demo script loaded');
+</script>
+</body>
+</html>

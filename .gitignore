@@ -1,0 +1,14 @@
+/target
+**/*.rs.bk
+Cargo.lock
+*.pdb
+*.exe
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+download/
+upload/
+*.tar.gz
+z-browser-linux

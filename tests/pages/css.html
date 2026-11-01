@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CSS Test</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 20px; background: #f8f8f8; }
+  h1 { color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 4px; }
+  .box { background: white; border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+  .highlight { background: yellow; padding: 2px 4px; }
+  .container { display: flex; gap: 10px; }
+  .container .item { flex: 1; background: #e0e0ff; padding: 10px; text-align: center; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .grid > div { background: #d0ffd0; padding: 10px; text-align: center; }
+  #specific { color: red; font-weight: bold; }
+  a:hover { color: purple; }
+  p[attr-test] { font-style: italic; }
+  p[attr-test="exact"] { color: green; }
+</style>
+</head>
+<body>
+<h1>CSS Test</h1>
+<p>This page exercises the CSS engine: selectors, specificity, cascade, the box model, flexbox, and grid.</p>
+
+<h2>Box model</h2>
+<div class="box">A box with padding, border, and margin.</div>
+
+<h2>Class selector</h2>
+<p>This is <span class="highlight">highlighted text</span> in a sentence.</p>
+
+<h2>ID selector</h2>
+<p id="specific">This paragraph is styled by id selector.</p>
+
+<h2>Attribute selector</h2>
+<p attr-test>This has the attribute (italic).</p>
+<p attr-test="exact">This has the exact value (green).</p>
+
+<h2>Flexbox</h2>
+<div class="container">
+  <div class="item">Item 1</div>
+  <div class="item">Item 2</div>
+  <div class="item">Item 3</div>
+</div>
+
+<h2>Grid</h2>
+<div class="grid">
+  <div>Cell 1</div>
+  <div>Cell 2</div>
+  <div>Cell 3</div>
+  <div>Cell 4</div>
+  <div>Cell 5</div>
+  <div>Cell 6</div>
+</div>
+
+<h2>Colors</h2>
+<p style="color: #ff0000;">Red hex</p>
+<p style="color: rgb(0, 128, 0);">Green rgb</p>
+<p style="color: hsl(240, 100%, 50%);">Blue hsl</p>
+<p style="color: orange;">Named</p>
+
+<h2>Inheritance</h2>
+<div style="color: darkblue;">
+  <p>This paragraph inherits color from its parent.</p>
+</div>
+</body>
+</html>

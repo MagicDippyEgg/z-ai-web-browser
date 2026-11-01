@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JavaScript Test</title>
+<style>
+  body { font-family: sans-serif; margin: 20px; }
+  .output { background: #f0f0f0; padding: 10px; margin: 5px 0; font-family: monospace; white-space: pre-wrap; }
+  button { padding: 5px 10px; cursor: pointer; }
+  .red { color: red; }
+</style>
+</head>
+<body>
+<h1>JavaScript Test</h1>
+<p>This page exercises the JavaScript engine: DOM manipulation, events, closures, classes, promises, timers, and fetch.</p>
+
+<h2>DOM manipulation</h2>
+<div id="dom-output" class="output">Initial</div>
+<button id="dom-btn">Update DOM</button>
+
+<h2>Closures and counter</h2>
+<div id="counter" class="output">0</div>
+<button id="counter-btn">Increment</button>
+
+<h2>Classes</h2>
+<div id="class-output" class="output"></div>
+
+<h2>Promises</h2>
+<div id="promise-output" class="output">Waiting...</div>
+
+<h2>setTimeout</h2>
+<div id="timer-output" class="output">Waiting for timer...</div>
+
+<h2>Event listeners</h2>
+<div id="event-log" class="output">No events yet</div>
+<input id="event-input" type="text" placeholder="Type here">
+
+<script>
+  // DOM manipulation
+  document.getElementById('dom-btn').addEventListener('click', function() {
+    document.getElementById('dom-output').textContent = 'Updated at ' + new Date().getTime();
+  });
+
+  // Counter with closure
+  var counter = (function() {
+    var n = 0;
+    return function() { return ++n; };
+  })();
+  document.getElementById('counter-btn').addEventListener('click', function() {
+    document.getElementById('counter').textContent = counter();
+  });
+
+  // Classes
+  class Animal {
+    constructor(name, sound) {
+      this.name = name;
+      this.sound = sound;
+    }
+    describe() { return this.name + ' says ' + this.sound; }
+  }
+  class Dog extends Animal {
+    constructor(name) { super(name, 'Woof'); }
+  }
+  var d = new Dog('Rex');
+  document.getElementById('class-output').textContent = d.describe();
+
+  // Promises
+  new Promise(function(resolve) {
+    setTimeout(function() { resolve('Resolved!'); }, 100);
+  }).then(function(v) {
+    document.getElementById('promise-output').textContent = v;
+  });
+
+  // setTimeout
+  setTimeout(function() {
+    document.getElementById('timer-output').textContent = 'Timer fired!';
+  }, 200);
+
+  // Event listeners on input
+  var log = document.getElementById('event-log');
+  var eventCount = 0;
+  document.getElementById('event-input').addEventListener('input', function() {
+    eventCount++;
+    log.textContent = 'Event #' + eventCount + ': ' + document.getElementById('event-input').value;
+  });
+
+  // Dispatch DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded fired');
+  });
+
+  console.log('Script finished executing');
+</script>
+</body>
+</html>

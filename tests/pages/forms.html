@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forms Test</title>
+<style>
+  body { font-family: sans-serif; margin: 20px; }
+  form { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+  label { display: block; margin: 8px 0 4px; font-weight: bold; }
+  input[type="text"], input[type="email"], input[type="password"], textarea, select {
+    width: 100%; padding: 6px; font-size: 14px; border: 1px solid #888;
+  }
+  input[type="submit"], button { padding: 8px 16px; background: #0066cc; color: white; border: none; cursor: pointer; }
+  input[type="checkbox"], input[type="radio"] { width: auto; }
+  .checkbox-group label { display: inline; font-weight: normal; margin-right: 12px; }
+</style>
+</head>
+<body>
+<h1>Forms Test</h1>
+<p>This page tests form elements, input handling, and submission.</p>
+
+<form action="/submit" method="get">
+  <label for="name">Name:</label>
+  <input type="text" id="name" name="name" placeholder="Your name">
+
+  <label for="email">Email:</label>
+  <input type="email" id="email" name="email" placeholder="you@example.com">
+
+  <label for="password">Password:</label>
+  <input type="password" id="password" name="password">
+
+  <label for="bio">Bio:</label>
+  <textarea id="bio" name="bio" rows="4"></textarea>
+
+  <label for="country">Country:</label>
+  <select id="country" name="country">
+    <option value="us">United States</option>
+    <option value="ca">Canada</option>
+    <option value="uk">United Kingdom</option>
+  </select>
+
+  <label>Subscribe to:</label>
+  <div class="checkbox-group">
+    <label><input type="checkbox" name="sub" value="news"> Newsletter</label>
+    <label><input type="checkbox" name="sub" value="deals"> Deals</label>
+    <label><input type="checkbox" name="sub" value="updates"> Updates</label>
+  </div>
+
+  <label>Plan:</label>
+  <div class="checkbox-group">
+    <label><input type="radio" name="plan" value="free" checked> Free</label>
+    <label><input type="radio" name="plan" value="pro"> Pro</label>
+    <label><input type="radio" name="plan" value="enterprise"> Enterprise</label>
+  </div>
+
+  <input type="submit" value="Submit Form">
+</form>
+
+<div id="output"></div>
+
+<script>
+  document.querySelector('form').addEventListener('submit', function(e) {
+    var data = [];
+    var inputs = document.querySelectorAll('input, select, textarea');
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      if (el.name) {
+        data.push(el.name + '=' + (el.value || ''));
+      }
+    }
+    document.getElementById('output').textContent = 'Form data:\n' + data.join('\n');
+    e.preventDefault();
+  });
+</script>
+</body>
+</html>

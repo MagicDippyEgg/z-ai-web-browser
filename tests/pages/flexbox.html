@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flexbox Test</title>
+<style>
+  body { font-family: sans-serif; margin: 20px; }
+  .flex-row { display: flex; flex-direction: row; background: #eee; padding: 10px; margin: 10px 0; }
+  .flex-row > div { background: #aad; padding: 10px; margin: 2px; }
+  .flex-col { display: flex; flex-direction: column; background: #eee; padding: 10px; margin: 10px 0; }
+  .flex-col > div { background: #ada; padding: 10px; margin: 2px; }
+  .justify-center { justify-content: center; }
+  .justify-between { justify-content: space-between; }
+  .justify-end { justify-content: flex-end; }
+  .align-center { align-items: center; }
+  .align-end { align-items: flex-end; }
+  .tall { height: 60px; }
+  .grow { flex-grow: 1; }
+  .wrap { flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<h1>Flexbox Test</h1>
+
+<h2>Row (default justify/align)</h2>
+<div class="flex-row">
+  <div>1</div><div>2</div><div>3</div>
+</div>
+
+<h2>Row + justify-content: center</h2>
+<div class="flex-row justify-center">
+  <div>1</div><div>2</div><div>3</div>
+</div>
+
+<h2>Row + justify-content: space-between</h2>
+<div class="flex-row justify-between">
+  <div>1</div><div>2</div><div>3</div>
+</div>
+
+<h2>Row + align-items: center (tall children)</h2>
+<div class="flex-row align-center" style="height:80px;">
+  <div class="tall">1</div><div>2</div><div class="tall">3</div>
+</div>
+
+<h2>Column</h2>
+<div class="flex-col">
+  <div>1</div><div>2</div><div>3</div>
+</div>
+
+<h2>Flex grow</h2>
+<div class="flex-row">
+  <div>Fixed</div>
+  <div class="grow">Grows to fill</div>
+  <div>Fixed</div>
+</div>
+
+<h2>Wrap</h2>
+<div class="flex-row wrap">
+  <div>One</div><div>Two</div><div>Three</div><div>Four</div><div>Five</div>
+  <div>Six</div><div>Seven</div><div>Eight</div><div>Nine</div><div>Ten</div>
+</div>
+</body>
+</html>
