@@ -39,6 +39,8 @@ pub struct Browser {
     pub address_cursor: Mutex<usize>,
     /// Whether the address bar is focused.
     pub address_focused: Mutex<bool>,
+    /// Node id of the focused input element on the page (0 = none).
+    pub focused_input: Mutex<usize>,
     pub running: bool,
     pub last_render: Instant,
     pub last_nav_target: Option<String>,
@@ -101,6 +103,7 @@ impl Browser {
             address_input: Mutex::new(String::new()),
             address_cursor: Mutex::new(0),
             address_focused: Mutex::new(false),
+            focused_input: Mutex::new(0),
             running: true,
             last_render: Instant::now(),
             last_nav_target: None,
@@ -265,19 +268,25 @@ impl Browser {
     fn handle_events(&mut self) {
         let mut clicked_url: Option<String> = None;
         let mut clicked_submit: Option<NodeRef> = None;
+        let mut clicked_input: Option<NodeRef> = None;
         // Modifier key state
         let shift = self.window.is_key_down(Key::LeftShift) || self.window.is_key_down(Key::RightShift);
         let ctrl = self.window.is_key_down(Key::LeftCtrl) || self.window.is_key_down(Key::RightCtrl);
         
+        let addr_focused = *self.address_focused.lock();
+        let focused_input_id = *self.focused_input.lock();
+        let page_input_focused = focused_input_id > 0;
+        
         // All key input: use KeyRepeat::Yes so holding a key auto-repeats
-        // naturally (after the OS-defined delay), just like a real text field.
         let pressed: Vec<Key> = self.window.get_keys_pressed(minifb::KeyRepeat::Yes);
         for k in pressed {
             // Handle special keys first
             match k {
                 Key::Escape => {
-                    if *self.address_focused.lock() {
+                    if addr_focused {
                         *self.address_focused.lock() = false;
+                    } else if page_input_focused {
+                        *self.focused_input.lock() = 0;
                     } else {
                         self.running = false;
                     }
@@ -295,6 +304,7 @@ impl Browser {
                         let len = url.chars().count();
                         *self.address_input.lock() = url;
                         *self.address_cursor.lock() = len;
+                        *self.focused_input.lock() = 0;
                         continue;
                     }
                     Key::T => { self.new_tab("about:blank"); continue; }
@@ -303,12 +313,21 @@ impl Browser {
                     _ => {}
                 }
             }
-            // Pass to chrome for address bar handling + character mapping
-            chrome::handle_key(self, k, shift, ctrl);
+            // Route input based on focus
+            if addr_focused {
+                // Address bar gets the key
+                chrome::handle_key(self, k, shift, ctrl);
+            } else if page_input_focused {
+                // Page input gets the key
+                self.handle_page_input_key(k, shift);
+            } else {
+                // Non-input shortcuts
+                chrome::handle_key(self, k, shift, ctrl);
+            }
         }
         
-        // Page Up/Down and arrow keys for scrolling (when not in address bar)
-        if !*self.address_focused.lock() {
+        // Page Up/Down and arrow keys for scrolling (when not typing)
+        if !addr_focused && !page_input_focused {
             let keys: Vec<Key> = self.window.get_keys();
             for k in keys {
                 let scroll_amount = match k {
@@ -330,12 +349,13 @@ impl Browser {
                 }
             }
         }
-        // Mouse — detect click EDGES (rising edge = real click).
+        // Mouse — detect click EDGES
         let mouse_down = self.window.get_mouse_down(MouseButton::Left);
         let click = mouse_down && !self.mouse_was_down;
         self.mouse_was_down = mouse_down;
 
         if click {
+            *self.focused_input.lock() = 0; // Clear input focus on any click
             if let Some(mouse) = self.window.get_mouse_pos(MouseMode::Clamp) {
                 let (mx, my) = (mouse.0 as i32, mouse.1 as i32);
                 if my < CHROME_HEIGHT as i32 {
@@ -346,30 +366,45 @@ impl Browser {
                     let doc = self.tabs[self.active_tab].page.document();
                     if let Some(doc) = doc {
                         if let Some(target) = find_element_at(&doc, mx as f32, py as f32) {
-                            if let NodeKind::Element(e) = &target.kind() {
-                                if e.tag.eq_ignore_ascii_case("a") {
-                                    if let Some(href) = e.get_attr("href") {
-                                        let base = self.tabs[self.active_tab].page.url.lock().clone();
-                                        let abs = resolve_url(&base, &href);
-                                        clicked_url = Some(abs);
+                            // Walk up from the clicked element to find the nearest
+                            // link, input, or button (the click might be on a
+                            // child element like <span> inside an <a>)
+                            let mut node = Some(target.clone());
+                            while let Some(n) = &node {
+                                if let NodeKind::Element(e) = &n.kind() {
+                                    let tag = e.tag.to_ascii_lowercase();
+                                    // Check for link
+                                    if tag == "a" {
+                                        if let Some(href) = e.get_attr("href") {
+                                            let base = self.tabs[self.active_tab].page.url.lock().clone();
+                                            let abs = resolve_url(&base, &href);
+                                            clicked_url = Some(abs);
+                                        }
+                                        break;
+                                    }
+                                    // Check for input/textarea (focus it)
+                                    if tag == "input" || tag == "textarea" {
+                                        let input_type = e.get_attr("type").map(|s| s.to_ascii_lowercase()).unwrap_or_default();
+                                        if input_type != "hidden" && input_type != "submit" && input_type != "button" {
+                                            clicked_input = Some(n.clone());
+                                        } else if input_type == "submit" || input_type == "button" {
+                                            clicked_submit = n.parent();
+                                        }
+                                        break;
+                                    }
+                                    // Check for submit button
+                                    if tag == "button" {
+                                        let type_attr = e.get_attr("type").map(|s| s.to_ascii_lowercase()).unwrap_or_default();
+                                        if type_attr != "button" {
+                                            clicked_submit = n.parent();
+                                        }
+                                        break;
                                     }
                                 }
-                                if e.tag.eq_ignore_ascii_case("button")
-                                    || (e.tag.eq_ignore_ascii_case("input")
-                                        && e.get_attr("type").map(|s| s.to_ascii_lowercase()).as_deref()
-                                            == Some("submit"))
-                                {
-                                    clicked_submit = target.parent();
-                                }
+                                node = n.parent();
                             }
+                            // Dispatch click event on the actual target
                             self.tabs[self.active_tab].page.dispatch_event(&target, "click");
-                            if let NodeKind::Element(e) = &target.kind() {
-                                if e.tag.eq_ignore_ascii_case("input")
-                                    || e.tag.eq_ignore_ascii_case("textarea")
-                                {
-                                    self.tabs[self.active_tab].page.dispatch_event(&target, "focus");
-                                }
-                            }
                         }
                     }
                 }
@@ -400,6 +435,72 @@ impl Browser {
         }
         if let Some(form) = clicked_submit {
             self.submit_form(&form);
+        }
+        if let Some(input) = clicked_input {
+            // Focus this input element
+            *self.focused_input.lock() = input.id;
+            // Initialize value if not already set
+            if input.input_value().is_none() {
+                let initial = input.get_attribute("value").unwrap_or_default();
+                input.set_input_value(Some(initial));
+            }
+            self.tabs[self.active_tab].page.dispatch_event(&input, "focus");
+            self.need_relayout = true;
+        }
+    }
+
+    /// Handle a key press when a page input element has focus.
+    fn handle_page_input_key(&mut self, key: Key, shift: bool) {
+        let focused_id = *self.focused_input.lock();
+        if focused_id == 0 { return; }
+        
+        let doc = self.tabs[self.active_tab].page.document();
+        let doc = match doc { Some(d) => d, None => return };
+        
+        // Find the focused input node by id
+        let mut input_node = None;
+        Node::walk_ref(&doc, &mut |n| {
+            if n.id == focused_id {
+                input_node = Some(n.clone());
+                false
+            } else {
+                true
+            }
+        });
+        let input = match input_node { Some(n) => n, None => return };
+        
+        match key {
+            Key::Enter => {
+                // Submit the form (if any)
+                let form = input.parent();
+                if let Some(f) = &form {
+                    let is_form = f.tag_name().map(|t| t.eq_ignore_ascii_case("form")).unwrap_or(false);
+                    if is_form {
+                        self.submit_form(f);
+                    }
+                }
+                *self.focused_input.lock() = 0;
+            }
+            Key::Backspace => {
+                let mut val = input.input_value().unwrap_or_default();
+                if !val.is_empty() {
+                    val.pop();
+                    input.set_input_value(Some(val));
+                    self.need_relayout = true;
+                }
+            }
+            Key::Escape => {
+                *self.focused_input.lock() = 0;
+            }
+            _ => {
+                // Map key to character and append to input value
+                if let Some(c) = key_to_char(key, shift) {
+                    let mut val = input.input_value().unwrap_or_default();
+                    val.push(c);
+                    input.set_input_value(Some(val));
+                    self.need_relayout = true;
+                }
+            }
         }
     }
 
