@@ -321,6 +321,55 @@ fn paint_node(r: &mut Renderer, node: &NodeRef, canvas: &mut Canvas, base_url: &
             }
         }
     }
+    // Paint form controls (input, button, textarea, select)
+    if let NodeKind::Element(e) = &kind {
+        let tag = e.tag.to_ascii_lowercase();
+        if tag == "input" || tag == "button" || tag == "textarea" || tag == "select" {
+            let layout = node.layout().unwrap_or_default();
+            if layout.width > 0.0 && layout.height > 0.0 {
+                // Draw background
+                let bg = style.background_color.unwrap_or(0xFFFFFFFF);
+                canvas.fill_rect(
+                    layout.x as i32,
+                    layout.y as i32,
+                    layout.width as i32,
+                    layout.height as i32,
+                    bg,
+                );
+                // Draw border
+                let border_color = style.border_color.unwrap_or(0xFF888888);
+                canvas.draw_rect_outline(
+                    layout.x as i32,
+                    layout.y as i32,
+                    layout.width as i32,
+                    layout.height as i32,
+                    border_color,
+                );
+                // Draw value text for inputs
+                if tag == "input" || tag == "button" {
+                    let val = node.input_value()
+                        .or_else(|| e.get_attr("value").map(|s| s.to_string()))
+                        .unwrap_or_default();
+                    if !val.is_empty() {
+                        let font = r.pick_font(style.font_family.as_deref().unwrap_or("sans"));
+                        let size = style.font_size.unwrap_or(14.0);
+                        let color = style.color.unwrap_or(0xFF000000);
+                        text::draw_text(
+                            canvas,
+                            &font,
+                            size,
+                            style.font_weight.unwrap_or(400),
+                            false,
+                            color,
+                            layout.x + 6.0,
+                            layout.y + size + 3.0,
+                            &val,
+                        );
+                    }
+                }
+            }
+        }
+    }
     // Recurse into children
     for c in node.children() {
         paint_node(r, &c, canvas, base_url);

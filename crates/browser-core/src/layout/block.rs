@@ -143,8 +143,15 @@ pub fn layout_block(ctx: &mut LayoutContext, node: &NodeRef, parent_box: &mut La
                 c.set_layout(LayoutRect::default());
                 continue;
             }
+            Display::InlineBlock => {
+                // Inline-block elements participate in inline flow (they
+                // sit side-by-side on the same line, like text). But they
+                // get their own layout box with explicit width/height.
+                // We add them to the inline run and lay them out there.
+                inline_run.push(c.clone());
+            }
             Display::Block | Display::ListItem | Display::Table | Display::TableRow
-            | Display::TableCell | Display::InlineBlock => {
+            | Display::TableCell => {
                 if !inline_run.is_empty() {
                     let h = layout_inline_run(ctx, &inline_run, content_x, content_y + block_height, content_width, &mut box_);
                     block_height += h;
@@ -343,6 +350,8 @@ pub fn layout_inline_run(
             runs: Vec::new(),
         },
         anonymous_height: 0.0,
+        viewport_width: _ctx.viewport_width,
+        viewport_height: _ctx.viewport_height,
     };
     let parent_style = parent_box.node.style();
     for n in nodes {
@@ -368,6 +377,8 @@ struct InlineState {
     lines: Vec<TextLine>,
     current_line: TextLine,
     anonymous_height: f32,
+    viewport_width: f32,
+    viewport_height: f32,
 }
 
 fn walk_inline(n: &NodeRef, _parent_style: &ComputedStyle, state: &mut InlineState) {
@@ -464,10 +475,101 @@ fn walk_inline(n: &NodeRef, _parent_style: &ComputedStyle, state: &mut InlineSta
                 };
                 return;
             }
+            // For inline-block elements (like inputs, buttons, inline-block divs),
+            // lay out their children as a block first, then position the
+            // resulting box inline.
+            if style.display == Display::InlineBlock {
+                // Determine the element's width
+                let elem_width = style.width.and_then(|w| match w {
+                    Length::Px(v) => Some(v),
+                    Length::Percent(p) => Some(state.width * p / 100.0),
+                    _ => None,
+                });
+                // Determine height
+                let elem_height = style.height.and_then(|h| match h {
+                    Length::Px(v) => Some(v),
+                    _ => None,
+                });
+                // Lay out this element's children as a block to get the
+                // actual content size. Use a temporary context.
+                let avail_w = elem_width.unwrap_or(state.width);
+                let mut sub_ctx = LayoutContext {
+                    viewport_width: state.viewport_width,
+                    viewport_height: state.viewport_height,
+                    x: 0.0,
+                    y: 0.0,
+                    available_width: avail_w,
+                    available_height: f32::INFINITY,
+                };
+                let mut sub_box = LayoutBox {
+                    node: n.clone(),
+                    rect: LayoutRect::default(),
+                    content: LayoutRect::default(),
+                    children: Vec::new(),
+                    text_lines: Vec::new(),
+                };
+                // Save the original layout so we can restore it after
+                let orig_layout = n.layout();
+                super::block::layout_block(&mut sub_ctx, n, &mut sub_box);
+                // Get the laid-out size
+                let laid_out = n.layout().unwrap_or_default();
+                let final_w = elem_width.unwrap_or(laid_out.width.max(100.0));
+                let final_h = elem_height.unwrap_or(laid_out.height.max(24.0));
+                // Check if we need to wrap
+                if state.cursor_x + final_w > state.x + state.width && state.cursor_x > state.x {
+                    state.current_line.width = state.cursor_x - state.x;
+                    state.current_line.height = state.max_line_height;
+                    state.lines.push(state.current_line.clone());
+                    state.anonymous_height += state.max_line_height;
+                    state.cursor_y += state.max_line_height;
+                    state.cursor_x = state.x;
+                    state.max_line_height = line_h;
+                    state.current_line = TextLine {
+                        x: state.x,
+                        y: state.cursor_y,
+                        width: 0.0,
+                        height: state.max_line_height,
+                        runs: Vec::new(),
+                    };
+                }
+                // Set this element's layout position (translate all children)
+                let elem_x = state.cursor_x;
+                let elem_y = state.cursor_y;
+                n.set_layout(LayoutRect {
+                    x: elem_x,
+                    y: elem_y,
+                    width: final_w,
+                    height: final_h,
+                });
+                // Translate children layouts to be relative to the new position
+                translate_subtree(n, elem_x, elem_y);
+                // Advance cursor
+                state.cursor_x += final_w + 4.0;
+                state.max_line_height = state.max_line_height.max(final_h);
+                let _ = orig_layout;
+                return;
+            }
+            // For other inline elements, recurse into children
             for c in n.children() {
                 walk_inline(&c, &style, state);
             }
         }
         _ => {}
+    }
+}
+
+/// Translate a node and all its descendants' layouts by (dx, dy).
+/// Used to reposition inline-block subtrees after inline positioning.
+fn translate_subtree(node: &NodeRef, dx: f32, dy: f32) {
+    if let Some(rect) = node.layout() {
+        node.set_layout(LayoutRect {
+            x: rect.x + dx,
+            y: rect.y + dy,
+            width: rect.width,
+            height: rect.height,
+        });
+    }
+    for c in node.children() {
+        translate_subtree(&c, dx, dy);
     }
 }

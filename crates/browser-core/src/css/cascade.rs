@@ -319,6 +319,7 @@ fn user_agent_stylesheet() -> Stylesheet {
         td, th { display: table-cell; padding: 1px; }
         th { font-weight: bold; }
         input, button, textarea, select { display: inline-block; font-family: inherit; font-size: inherit; box-sizing: border-box; }
+        input[type="hidden"] { display: none; }
         input[type="checkbox"], input[type="radio"] { width: 13px; height: 13px; }
         input[type="text"], input[type="search"], input[type="email"], input[type="url"], input[type="password"], input:not([type]) { width: 200px; height: 24px; padding: 3px 6px; border: 1px solid #888; }
         textarea { width: 300px; height: 80px; padding: 4px; border: 1px solid #888; }
