@@ -279,14 +279,31 @@ pub fn apply_declaration(
         }
         "font" => {
             // font shorthand: [style] [weight] [size]/[line-height] [family]
-            // e.g. "16px/1.6 system-ui, sans-serif" or "italic bold 14px Arial"
             let v_str = v.to_string_raw();
-            // Find the size (first number with a unit)
             let parts: Vec<&str> = v_str.split_whitespace().collect();
             let mut found_size = false;
             for part in parts {
                 if !found_size {
-                    // Check if this part contains a size (number + px/em/etc)
+                    // Check if this part contains a size/line-height combo (e.g. "2em/1.5")
+                    if part.contains('/') {
+                        let slash_parts: Vec<&str> = part.split('/').collect();
+                        if slash_parts.len() == 2 {
+                            let size_val = super::parser::parse_value(slash_parts[0]);
+                            if let Value::Length(_, _) = size_val {
+                                if let Some(px) = resolve_length(&size_val, parent.font_size.unwrap_or(16.0), 16.0, vw, vh) {
+                                    style.font_size = Some(px);
+                                }
+                            }
+                            // Parse line-height
+                            let lh_val = super::parser::parse_value(slash_parts[1]);
+                            if let Some(n) = lh_val.as_number() {
+                                style.line_height = Some(n as f32);
+                            }
+                            found_size = true;
+                            continue;
+                        }
+                    }
+                    // Check if this part is a size (number + px/em/etc)
                     let val = super::parser::parse_value(part);
                     if let Value::Length(_, _) = val {
                         if let Some(px) = resolve_length(&val, parent.font_size.unwrap_or(16.0), 16.0, vw, vh) {

@@ -815,6 +815,11 @@ fn tokenize_value(s: &str) -> Vec<Value> {
                     "ms" => out.push(Value::Time(num)),
                     _ => out.push(Value::Ident(SmolStr::new(format!("{}{}", num, unit_str)))),
                 }
+            } else if i < bytes.len() && bytes[i] == b'%' {
+                // Percent sign — not alphabetic so the unit loop didn't
+                // consume it. Handle it here.
+                i += 1;
+                out.push(Value::Percentage(num));
             } else {
                 out.push(Value::Number(num));
             }

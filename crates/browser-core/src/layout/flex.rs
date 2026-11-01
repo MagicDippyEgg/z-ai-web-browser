@@ -160,7 +160,11 @@ pub fn layout_flex(ctx: &mut LayoutContext, node: &NodeRef, parent_box: &mut Lay
     // Determine the available main size.
     let main_size = match direction {
         FlexDirection::Row | FlexDirection::RowReverse => content_width,
-        FlexDirection::Column | FlexDirection::ColumnReverse => content_height,
+        FlexDirection::Column | FlexDirection::ColumnReverse => {
+            // For column flex, if no explicit height, use infinity so
+            // children don't shrink to 0.
+            if content_height > 0.0 { content_height } else { f32::INFINITY }
+        }
     };
     let cross_size = match direction {
         FlexDirection::Row | FlexDirection::RowReverse => content_height,
@@ -294,6 +298,10 @@ pub fn layout_flex(ctx: &mut LayoutContext, node: &NodeRef, parent_box: &mut Lay
             };
             let mut sub_box = child_box;
             super::block::layout_block(&mut sub, &it.node, &mut sub_box);
+            // layout_block may have overwritten the layout; restore our
+            // flex-computed position and size.
+            it.node.set_layout(LayoutRect { x: mx, y: my, width: mw, height: mh });
+            sub_box.rect = LayoutRect { x: mx, y: my, width: mw, height: mh };
             box_.children.push(sub_box);
             cursor_main += it.final_main + it.margin_main + gap_between;
         }

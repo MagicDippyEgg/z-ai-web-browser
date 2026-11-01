@@ -18,9 +18,14 @@ pub fn layout_block(ctx: &mut LayoutContext, node: &NodeRef, parent_box: &mut La
     let padding = style.padding;
     let border = style.border;
     // Width: explicit width, max-width, otherwise fill available.
+    let font_size = style.font_size.unwrap_or(16.0);
     let mut explicit_width = style.width.and_then(|w| match w {
         Length::Px(v) => Some(v),
         Length::Percent(p) => Some(ctx.available_width * p / 100.0),
+        Length::Em(v) => Some(v * font_size),
+        Length::Rem(v) => Some(v * 16.0),
+        Length::Vw(v) => Some(v * ctx.viewport_width / 100.0),
+        Length::Vh(v) => Some(v * ctx.viewport_height / 100.0),
         _ => None,
     });
     // Apply max-width constraint
@@ -229,6 +234,10 @@ pub fn layout_block(ctx: &mut LayoutContext, node: &NodeRef, parent_box: &mut La
     let height = match style.height {
         Some(Length::Px(v)) => v.max(block_height),
         Some(Length::Percent(p)) => (ctx.available_height * p / 100.0).max(block_height),
+        Some(Length::Em(v)) => (v * font_size).max(block_height),
+        Some(Length::Rem(v)) => (v * 16.0).max(block_height),
+        Some(Length::Vw(v)) => (v * ctx.viewport_width / 100.0).max(block_height),
+        Some(Length::Vh(v)) => (v * ctx.viewport_height / 100.0).max(block_height),
         _ => block_height,
     };
     box_.rect.height = height + border.top + border.bottom + padding.top + padding.bottom;
